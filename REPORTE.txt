@@ -1,0 +1,616 @@
+xd?
+
+
+package Interfaces;
+
+////////////////////////////////////////
+
+import javax.swing.JOptionPane;
+import java.sql.*;
+public class Conexion {
+
+    Connection conect = null;
+
+    public Connection conectar() {
+        try {
+             Class.forName("com.mysql.jdbc.Driver");
+            conect = DriverManager.getConnection("jdbc:mysql://localhost/visual", "root", "");
+            System.out.println("OK");
+
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(null, ex);
+        }
+        return conect;
+    }
+}
+
+----------------------------------
+
+
+package Interfaces;
+public class Estudiante {
+    private String cedula;
+    private String nombre;
+    private String apellido;
+    private String direccion;
+    private String telefono;
+    
+    /**
+     * Constructor vacío
+     */
+    public Estudiante() {
+    }
+    
+    /**
+     * Constructor con todos los campos
+     */
+    public Estudiante(String cedula, String nombre, String apellido, String direccion, String telefono) {
+        this.cedula = cedula;
+        this.nombre = nombre;
+        this.apellido = apellido;
+        this.direccion = direccion;
+        this.telefono = telefono;
+    }
+    
+    // Getters y Setters
+    public String getCedula() {
+        return cedula;
+    }
+    
+    public void setCedula(String cedula) {
+        this.cedula = cedula;
+    }
+    
+    public String getNombre() {
+        return nombre;
+    }
+    
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+    
+    public String getApellido() {
+        return apellido;
+    }
+    
+    public void setApellido(String apellido) {
+        this.apellido = apellido;
+    }
+    
+    public String getDireccion() {
+        return direccion;
+    }
+    
+    public void setDireccion(String direccion) {
+        this.direccion = direccion;
+    }
+    
+    public String getTelefono() {
+        return telefono;
+    }
+    
+    public void setTelefono(String telefono) {
+        this.telefono = telefono;
+    }
+    
+    @Override
+    public String toString() {
+        return "Estudiante{" + 
+                "cedula='" + cedula + '\'' +
+                ", nombre='" + nombre + '\'' +
+                ", apellido='" + apellido + '\'' +
+                ", direccion='" + direccion + '\'' +
+                ", telefono='" + telefono + '\'' +
+                '}';
+    }
+}
+
+---------------------------
+package Interfaces;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import javax.swing.JOptionPane;
+import javax.swing.table.DefaultTableModel;
+
+public class EstudianteDAO {
+
+    private Conexion conexion;
+
+    public EstudianteDAO() {
+        this.conexion = new Conexion();
+    }
+
+    public String validarDatos(Estudiante estudiante) {
+    StringBuilder errores = new StringBuilder();
+    
+    // Validar cédula
+    if (estudiante.getCedula() == null || estudiante.getCedula().trim().isEmpty()) {
+        errores.append("- La cédula no puede estar vacía.\n");
+    } else if (!estudiante.getCedula().matches("\\d{10}")) {
+        errores.append("- La cédula debe tener exactamente 10 dígitos numéricos.\n");
+    }
+    
+    // Validar nombre
+    if (estudiante.getNombre() == null || estudiante.getNombre().trim().isEmpty()) {
+        errores.append("- El nombre no puede estar vacío.\n");
+    } else if (!estudiante.getNombre().matches("^[\\p{L} .'-]{1,15}$")) {
+        errores.append("- El nombre solo permite letras y espacios (hasta 15 caracteres).\n");
+    }
+    
+    // Validar apellido
+    if (estudiante.getApellido() == null || estudiante.getApellido().trim().isEmpty()) {
+        errores.append("- El apellido no puede estar vacío.\n");
+    } else if (!estudiante.getApellido().matches("^[\\p{L} .'-]{1,15}$")) {
+        errores.append("- El apellido solo permite letras y espacios (hasta 15 caracteres).\n");
+    }
+    
+    // Validar teléfono (ahora permitimos vacío)
+    if (estudiante.getTelefono() != null && !estudiante.getTelefono().trim().isEmpty() && 
+        !estudiante.getTelefono().matches("\\d{10}")) {
+        errores.append("- El teléfono debe tener exactamente 10 dígitos numéricos.\n");
+    }
+    
+    // Validar dirección (si es requerida)
+    if (estudiante.getDireccion() == null || estudiante.getDireccion().trim().isEmpty()) {
+        errores.append("- La dirección no puede estar vacía.\n");
+    } else if (estudiante.getDireccion().length() > 100) {
+        errores.append("- La dirección no puede exceder los 100 caracteres.\n");
+    }
+    
+    return errores.length() > 0 ? errores.toString() : null;
+}
+
+    public List<Estudiante> obtenerTodos() {
+        List<Estudiante> estudiantes = new ArrayList<>();
+        Connection conn = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+
+        try {
+            conn = conexion.conectar();
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery("SELECT * FROM estudiantes");
+
+            while (rs.next()) {
+                Estudiante estudiante = new Estudiante();
+                estudiante.setCedula(rs.getString("cedula"));
+                estudiante.setNombre(rs.getString("nombre"));
+                estudiante.setApellido(rs.getString("apellido"));
+                estudiante.setDireccion(rs.getString("direccion"));
+                estudiante.setTelefono(rs.getString("telefono"));
+                estudiantes.add(estudiante);
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Error al obtener estudiantes: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            cerrarRecursos(conn, stmt, rs);
+        }
+
+        return estudiantes;
+    }
+
+    public DefaultTableModel cargarTablaEstudiantes() {
+        DefaultTableModel modelo = null;
+        Connection conn = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+
+        try {
+            String[] titulos = {"Cédula", "Nombre", "Apellido", "Dirección", "Teléfono"};
+            modelo = new DefaultTableModel(null, titulos);
+
+            conn = conexion.conectar();
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery("SELECT * FROM estudiantes");
+
+            while (rs.next()) {
+                String[] registro = new String[5];
+                registro[0] = rs.getString("cedula");
+                registro[1] = rs.getString("nombre");
+                registro[2] = rs.getString("apellido");
+                registro[3] = rs.getString("direccion");
+                registro[4] = rs.getString("telefono");
+                modelo.addRow(registro);
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Error al cargar la tabla: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            cerrarRecursos(conn, stmt, rs);
+        }
+
+        return modelo;
+    }
+
+    public boolean insertar(Estudiante estudiante) {
+    Connection conn = null;
+    PreparedStatement pstmt = null;
+    boolean resultado = false;
+
+    // Validar datos antes de insertar
+    String mensajeError = validarDatos(estudiante);
+    if (mensajeError != null) {
+        JOptionPane.showMessageDialog(null, "Insertar bien los datos");
+        return false;
+    }
+
+    try {
+        conn = conexion.conectar();
+        pstmt = conn.prepareStatement("INSERT INTO estudiantes VALUES (?, ?, ?, ?, ?)");
+        pstmt.setString(1, estudiante.getCedula());
+        pstmt.setString(2, estudiante.getNombre());
+        pstmt.setString(3, estudiante.getApellido());
+        pstmt.setString(4, estudiante.getDireccion());
+        
+        // Si el teléfono está vacío, usar 10 ceros
+        String telefono = estudiante.getTelefono();
+        pstmt.setString(5, telefono == null || telefono.trim().isEmpty() ? "0000000000" : telefono);
+
+        int filas = pstmt.executeUpdate();
+        resultado = filas > 0;
+    } catch (SQLException e) {
+        String errorMsg = "Error al insertar: ";
+        if (e.getErrorCode() == 1062) {
+            errorMsg += "Cédula ya existe.";
+        } else {
+            errorMsg += e.getMessage();
+        }
+        JOptionPane.showMessageDialog(null, errorMsg);
+
+    } finally {
+        cerrarRecursos(conn, pstmt, null);
+    }
+
+    return resultado;
+}
+    public boolean actualizar(Estudiante estudiante) {
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        boolean resultado = false;
+
+        // Validar datos antes de actualizar
+        String mensajeError = validarDatos(estudiante);
+        if (mensajeError != null) {
+            JOptionPane.showMessageDialog(null, mensajeError);
+            return false;
+        }
+
+        try {
+            conn = conexion.conectar();
+            pstmt = conn.prepareStatement("UPDATE estudiantes SET nombre=?, apellido=?, direccion=?, telefono=? WHERE cedula=?");
+            pstmt.setString(1, estudiante.getNombre());
+            pstmt.setString(2, estudiante.getApellido());
+            pstmt.setString(3, estudiante.getDireccion());
+            pstmt.setString(4, estudiante.getTelefono().isEmpty() ? "0000000000" : estudiante.getTelefono());
+            pstmt.setString(5, estudiante.getCedula());
+
+            int filas = pstmt.executeUpdate();
+            resultado = filas > 0;
+        } catch (SQLException e) {
+    JOptionPane.showMessageDialog(null, "Error al actualizar: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            cerrarRecursos(conn, pstmt, null);
+        }
+
+        return resultado;
+    }
+
+    public boolean eliminar(String cedula) {
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        boolean resultado = false;
+
+        try {
+            conn = conexion.conectar();
+            pstmt = conn.prepareStatement("DELETE FROM estudiantes WHERE cedula=?");
+            pstmt.setString(1, cedula);
+
+            int filas = pstmt.executeUpdate();
+            resultado = filas > 0;
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Error al eliminar estudiante: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            cerrarRecursos(conn, pstmt, null);
+        }
+
+        return resultado;
+    }
+
+    public Estudiante buscarPorCedula(String cedula) {
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        Estudiante estudiante = null;
+
+        try {
+            conn = conexion.conectar();
+            pstmt = conn.prepareStatement("SELECT * FROM estudiantes WHERE cedula=?");
+            pstmt.setString(1, cedula);
+            rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                estudiante = new Estudiante();
+                estudiante.setCedula(rs.getString("cedula"));
+                estudiante.setNombre(rs.getString("nombre"));
+                estudiante.setApellido(rs.getString("apellido"));
+                estudiante.setDireccion(rs.getString("direccion"));
+                estudiante.setTelefono(rs.getString("telefono"));
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Error al buscar estudiante: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            cerrarRecursos(conn, pstmt, rs);
+        }
+
+        return estudiante;
+    }
+
+    private void cerrarRecursos(Connection conn, Statement stmt, ResultSet rs) {
+        try {
+            if (rs != null) {
+                rs.close();
+            }
+            if (stmt != null) {
+                stmt.close();
+            }
+            if (conn != null) {
+                conn.close();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+-----------------------------------
+frame 
+
+     public void cargarTablaEstudiantes() {
+           try {
+               modelo = estudianteDAO.cargarTablaEstudiantes();
+               jtblEstudiantes.setModel(modelo);
+           } catch (Exception ex) {
+               JOptionPane.showMessageDialog(null, "Error al cargar la tabla: " + ex.getMessage());
+               ex.printStackTrace();
+           }
+       }
+
+     public void guardarEstudiante() {
+       try {
+           // Crear objeto estudiante con los datos del formulario
+           Estudiante estudiante = new Estudiante();
+           estudiante.setCedula(JtxtCedula.getText().trim());
+           estudiante.setNombre(JtxtNombre.getText().trim());
+           estudiante.setApellido(JtxtApellido.getText().trim());
+           estudiante.setDireccion(JtxtDireccion.getText().trim());
+
+           // Si el teléfono está vacío, asignar 10 ceros
+           String telefono = JtxtTelefono.getText().trim();
+           estudiante.setTelefono(telefono.isEmpty() ? "0000000000" : telefono);
+
+           // Resto del método permanece igual...
+           String mensajeError = estudianteDAO.validarDatos(estudiante);
+           if (mensajeError != null) {
+               JOptionPane.showMessageDialog(this, "Por favor corrija los siguientes errores:\n" + mensajeError, 
+                   "Error de validación", JOptionPane.ERROR_MESSAGE);
+               return;
+           }
+
+           // Insertar el estudiante usando el DAO
+           boolean resultado = estudianteDAO.insertar(estudiante);
+
+           if (resultado) {
+               JOptionPane.showMessageDialog(this, "Estudiante guardado correctamente", 
+                   "Éxito", JOptionPane.INFORMATION_MESSAGE);
+               cargarTablaEstudiantes();
+               botonesInicio();
+               textoInicio();
+               limpiarCampos();
+           }
+       } catch (Exception ex) {
+           JOptionPane.showMessageDialog(this, "Error al guardar el estudiante: " + ex.getMessage(), 
+               "Error", JOptionPane.ERROR_MESSAGE);
+           ex.printStackTrace();
+       }
+   }
+        public void eliminarEstudiante() {
+           try {
+               if (jtblEstudiantes.getSelectedRow() == -1) {
+                   JOptionPane.showMessageDialog(this, "Debe seleccionar un estudiante para eliminar.");
+                   return;
+               }
+
+               String cedulaAEliminar = JtxtCedula.getText().trim();
+
+               if (JOptionPane.showConfirmDialog(
+                       new JInternalFrame(), 
+                       "¿Está seguro de eliminar al estudiante con cédula: " + cedulaAEliminar + "?",
+                       "Eliminar",
+                       JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+
+                   boolean resultado = estudianteDAO.eliminar(cedulaAEliminar);
+
+                   if (resultado) {
+                       JOptionPane.showMessageDialog(this, "Estudiante eliminado correctamente");
+                       cargarTablaEstudiantes();
+                       botonesInicio();
+                       textoInicio();
+                       limpiarCampos();
+                   } else {
+                       JOptionPane.showMessageDialog(this, "No se pudo eliminar el estudiante");
+                   }
+               }
+           } catch (Exception ex) {
+               JOptionPane.showMessageDialog(null, "Error al eliminar el estudiante: " + ex.getMessage());
+               ex.printStackTrace();
+           }
+       }
+
+       public void editarEstudiante() {
+       try {
+           if (jtblEstudiantes.getSelectedRow() == -1) {
+               JOptionPane.showMessageDialog(this, "Debe seleccionar un estudiante para editar.", 
+                   "Advertencia", JOptionPane.WARNING_MESSAGE);
+               return;
+           }
+
+           // Crear objeto estudiante con los datos del formulario
+           Estudiante estudiante = new Estudiante();
+           estudiante.setCedula(JtxtCedula.getText().trim());
+           estudiante.setNombre(JtxtNombre.getText().trim());
+           estudiante.setApellido(JtxtApellido.getText().trim());
+           estudiante.setDireccion(JtxtDireccion.getText().trim());
+           estudiante.setTelefono(JtxtTelefono.getText().trim());
+
+           // Validar datos antes de actualizar
+           String mensajeError = estudianteDAO.validarDatos(estudiante);
+           if (mensajeError != null) {
+               JOptionPane.showMessageDialog(this, "Por favor corrija los siguientes errores:\n" + mensajeError, 
+                   "Error de validación", JOptionPane.ERROR_MESSAGE);
+               return;
+           }
+
+           // Actualizar el estudiante usando el DAO
+           boolean resultado = estudianteDAO.actualizar(estudiante);
+
+           if (resultado) {
+               JOptionPane.showMessageDialog(this, "Estudiante actualizado correctamente", 
+                   "Éxito", JOptionPane.INFORMATION_MESSAGE);
+               cargarTablaEstudiantes();
+               botonesInicio();
+               textoInicio();
+               limpiarCampos();
+               modoEdicion = false;
+           } else {
+               JOptionPane.showMessageDialog(this, "No se pudo actualizar el estudiante", 
+                   "Error", JOptionPane.ERROR_MESSAGE);
+           }
+       } catch (Exception ex) {
+           JOptionPane.showMessageDialog(this, "Error al editar el estudiante: " + ex.getMessage(), 
+               "Error", JOptionPane.ERROR_MESSAGE);
+           ex.printStackTrace();
+       }
+   }
+
+       public void configurarSeleccionTabla() {
+           jtblEstudiantes.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+               @Override
+               public void valueChanged(ListSelectionEvent e) {
+                   if (!e.getValueIsAdjusting() && jtblEstudiantes.getSelectedRow() != -1) {
+                       int fila = jtblEstudiantes.getSelectedRow();
+                       JtxtCedula.setText(jtblEstudiantes.getValueAt(fila, 0).toString());
+                       JtxtNombre.setText(jtblEstudiantes.getValueAt(fila, 1).toString());
+                       JtxtApellido.setText(jtblEstudiantes.getValueAt(fila, 2).toString());
+                       JtxtDireccion.setText(jtblEstudiantes.getValueAt(fila, 3).toString());
+                       JtxtTelefono.setText(jtblEstudiantes.getValueAt(fila, 4).toString());
+                       botonesEditar();
+                       textoEditar();
+                   }
+               }
+           });
+       }
+       public void textoInicio() {
+           JtxtCedula.setEnabled(false);
+           JtxtNombre.setEnabled(false);
+           JtxtApellido.setEnabled(false);
+           JtxtDireccion.setEnabled(false);
+           JtxtTelefono.setEnabled(false);
+       }
+
+       public void botonesInicio() {
+           jBtnGuardar.setEnabled(false);
+           jBtnEditar.setEnabled(false);
+           jBtnNuevo.setEnabled(true);
+           jBtnEliminar.setEnabled(false);
+           jBtnCancelar.setEnabled(false);
+           jBtnReporte.setEnabled(true);      // Deshabilitado inicialmente
+           jBtnRcedula.setEnabled(false);      // Deshabilitado inicialmente
+           JbtnNumeroEstudiantes.setEnabled(true); // Este puede permanecer habilitado
+           JbtnDireccion.setEnabled(true); // 
+       }
+
+       public void textoNuevo() {
+           JtxtCedula.setEnabled(true);
+           JtxtNombre.setEnabled(true);
+           JtxtApellido.setEnabled(true);
+           JtxtDireccion.setEnabled(true);
+           JtxtTelefono.setEnabled(true);
+           JtxtCedula.requestFocus();
+       }
+
+       public void botonesNuevo() {
+           jBtnGuardar.setEnabled(true);
+           jBtnEditar.setEnabled(false);
+           jBtnCancelar.setEnabled(true);
+           jBtnNuevo.setEnabled(false);
+           jBtnEliminar.setEnabled(false);
+       }
+
+       public void botonesEditar() {
+           jBtnGuardar.setEnabled(false);
+           jBtnEditar.setEnabled(true);
+           jBtnCancelar.setEnabled(true);
+           jBtnNuevo.setEnabled(true);
+           jBtnEliminar.setEnabled(true);
+           jBtnReporte.setEnabled(true);      // Habilitar reporte general
+           jBtnRcedula.setEnabled(true);
+              jBtnReporte.setEnabled(false);      // Deshabilitado inicialmente
+           jBtnRcedula.setEnabled(true);      // Deshabilitado inicialmente
+           JbtnNumeroEstudiantes.setEnabled(false); // Este puede permanecer habilitado
+           JbtnDireccion.setEnabled(false); // 
+
+       }
+
+       public void textoEditar() {
+           JtxtCedula.setEnabled(false); // La cédula no se puede editar (clave primaria)
+           JtxtNombre.setEnabled(true);
+           JtxtApellido.setEnabled(true);
+           JtxtDireccion.setEnabled(true);
+           JtxtTelefono.setEnabled(true);
+           modoEdicion = true;
+       }
+
+       public void limpiarCampos() {
+           JtxtCedula.setText("");
+           JtxtNombre.setText("");
+           JtxtApellido.setText("");
+           JtxtDireccion.setText("");
+           JtxtTelefono.setText("");
+       }
+            
+           
+
+private void jBtnReporteActionPerformed(java.awt.event.ActionEvent evt) {                                            
+    try {
+        Conexion cp = new Conexion();
+        Connection conn = cp.conectar();
+        JasperReport reporte = JasperCompileManager.compileReport("C://Reporte//Estudiante.jrxml"); // asegúrate del nombre
+        JasperPrint imprimir = JasperFillManager.fillReport(reporte, null, conn);
+        JasperViewer.viewReport(imprimir, false);
+    } catch (JRException ex) {
+        java.util.logging.Logger.getLogger(Estudiantes.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+    
+}
+
+
+           try {
+             Conexion cp = new  Conexion();
+             cp.conectar();
+             Map parametro = new HashMap();
+             parametro.put("cedula", JtxtCedula.getText());
+             JasperReport reporte = JasperCompileManager.compileReport("C://Reporte//Estudiante_por_cedula.jrxml");
+             JasperPrint imprimir = JasperFillManager.fillReport(reporte,parametro,cc);
+             JasperViewer.viewReport(imprimir, false);
+
+         } catch (JRException ex) {
+             java.util.logging.Logger.getLogger(Estudiantes.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+         }
+        
+    }
+
