@@ -1,0 +1,257 @@
+notas  
+
+
+
+package repaso;
+import java.util.List;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+/**
+ *
+ * @author ASUS
+ */
+public class EstudianteDAO {
+    Conexion cc= new Conexion();
+    Connection con;
+    ResultSet rs;
+    PreparedStatement ps ;
+    
+    public boolean  insertar  (Estudiantes e){
+        try {
+            String sql="INSERT INTO prueb_3 (cedula,nombre,apellido, nota) VALUES (?,?,?,?)";
+            con =cc.conexion();
+            ps = con.prepareStatement(sql);
+            
+            ps.setString(1, e.getCedula());
+            ps.setString(2, e.getNombre());
+            ps.setString(3, e.getApellido());
+            ps.setDouble(4, e.getNota());
+            
+            ps.executeUpdate();
+            
+        } catch (SQLException ex) {
+            Logger.getLogger(EstudianteDAO.class.getName()).log(Level.SEVERE, null, ex);
+        }
+                    return true;
+
+    }
+    
+    public List listar(){
+        List<Estudiantes> lista = new ArrayList<>();
+       String sql = "SELECT * FROM prueb_3";
+
+        try {
+
+            con = cc.conexion();
+            ps = con.prepareStatement(sql);
+            rs = ps.executeQuery();
+
+            while (rs.next()) {
+
+                Estudiantes e = new Estudiantes();
+
+                e.setCedula(rs.getString("cedula"));
+                e.setNombre(rs.getString("nombre"));
+                e.setApellido(rs.getString("apellido"));
+                e.setNota(rs.getDouble("nota"));
+
+                lista.add(e);
+            }
+
+        } catch (Exception ex) {
+            System.out.println(ex);
+        }
+
+        return lista;
+    }
+    
+    public boolean eliminar(String cedula){
+        try {
+            String sql = "DELETE FROM prueb_3 where cedula=?";
+            con = cc.conexion();
+            ps = con.prepareStatement(sql);
+            ps.setString(1, cedula);
+            ps.executeUpdate();
+            return true;
+        } catch (SQLException ex) {
+            Logger.getLogger(EstudianteDAO.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return false;
+    }
+    
+    public boolean actualizar(Estudiantes e){
+                  String sql = "UPDATE  prueb_3 SET nombre=?, apellido=?, nota=? WHERE cedula=?";
+        try {
+            con = cc.conexion();
+            ps = con.prepareStatement(sql);
+            ps.setString(1, e.getNombre());
+            ps.setString(2, e.getApellido());
+            ps.setDouble(3, e.getNota());
+            ps.setString(4, e.getCedula());
+              
+            ps.executeUpdate();
+            return true;
+        } catch (SQLException ex) {
+            Logger.getLogger(EstudianteDAO.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return false;
+    }
+       
+    
+    
+    
+}
+--------------------------------------------------------------
+conexion 
+
+package repaso;
+
+import java.sql.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+/**
+ *
+ * @author ASUS
+ */
+public class Conexion {
+    String url= "jdbc:mysql://localhost:3306/prueb_3";
+    String nombre = "root";
+    String contrasena = "";
+    Connection conectar = null;
+    
+    public Connection conexion (){
+        
+        try {
+            conectar = DriverManager.getConnection(url,nombre,contrasena);
+            System.out.println("Conectado");
+        } catch (SQLException ex) {
+                Logger.getLogger(Conexion.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return conectar;
+    }
+}
+
+----------------------------------
+estudiantes
+
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package repaso;
+
+/**
+ *
+ * @author ASUS
+ */
+public class Estudiantes {
+    String cedula;
+    String nombre;
+    String apellido;
+    Double nota;
+
+    public String getCedula() {
+        return cedula;
+    }
+
+    public void setCedula(String cedula) {
+        this.cedula = cedula;
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public String getApellido() {
+        return apellido;
+    }
+
+    public void setApellido(String apellido) {
+        this.apellido = apellido;
+    }
+
+    public Double getNota() {
+        return nota;
+    }
+
+    public void setNota(Double nota) {
+        this.nota = nota;
+    }
+           
+}
+
+---------------------------FRAME
+
+private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {                                         
+        Estudiantes e = new Estudiantes();
+
+e.setCedula(jtxtCedula.getText());
+e.setNombre(jtxtNombre.getText());
+e.setApellido(jtxtApellido.getText());
+e.setNota(Double.parseDouble(jtxtNota.getText()));
+    EstudianteDAO dao = new EstudianteDAO();
+    dao.insertar(e);
+    Tabla();
+    }                                        
+
+    private void jbtnEliminarActionPerformed(java.awt.event.ActionEvent evt) {                                             
+        String cedula = jtxtCedula.getText();
+        dao.eliminar(cedula);
+        Tabla();
+    }                                            
+
+    private void jbtnActualizarActionPerformed(java.awt.event.ActionEvent evt) {                                               
+        Estudiantes e = new Estudiantes();
+        e.setCedula(jtxtCedula.getText());
+        e.setNombre(jtxtNombre.getText());
+        e.setApellido(jtxtApellido.getText());
+        e.setNota(Double.parseDouble(jtxtNota.getText()));
+        
+        dao.actualizar(e);
+        Tabla();
+    }             
+
+
+--------
+public class Frame extends javax.swing.JFrame {
+EstudianteDAO dao = new EstudianteDAO();
+    /**
+     * Creates new form Frame
+     */
+    public Frame() {
+        initComponents();
+        Tabla();
+    }
+    
+    
+     public void Tabla (){
+        DefaultTableModel modelo = new DefaultTableModel();
+        modelo.addColumn("Cedula");
+        modelo.addColumn("Nombre");
+        modelo.addColumn("Apellido");
+        modelo.addColumn("Notas");
+        
+        List<Estudiantes> lista = dao.listar();
+    
+        Object[] fila = new Object[4];
+        
+        for(int i = 0 ; i<lista.size();i++){
+            fila[0] = lista.get(i).getCedula();
+            fila[1] = lista.get(i).getNombre();
+            fila[2] = lista.get(i).getApellido();
+            fila[3] = lista.get(i).getNota();
+        modelo.addRow(fila);
+        }
+        jtbl.setModel(modelo);
+     }
+----------
+
+--add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED
+
+---
