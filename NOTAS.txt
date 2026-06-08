@@ -1,0 +1,605 @@
+NOTAS 
+BD RELACIONAL fk
+
+CREATE DATABASE sistema_inventario;
+USE sistema_inventario;
+
+CREATE TABLE categorias (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE productos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    precio DECIMAL(10,2) NOT NULL,
+    detalle VARCHAR(255) NOT NULL,
+    categoria_id INT,
+    FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE CASCADE
+);
+
+INSERT INTO categorias (nombre) VALUES ('Snacks');
+INSERT INTO categorias (nombre) VALUES ('Bebidas');
+INSERT INTO categorias (nombre) VALUES ('Lácteos');
+INSERT INTO productos (nombre, precio, detalle, categoria_id) 
+VALUES ('Doritos', 1.50, 'Funda grande', 1);
+
+INSERT INTO productos (nombre, precio, detalle, categoria_id) 
+VALUES ('Coca Cola', 1.25, 'Botella 500ml', 2);
+
+INSERT INTO productos (nombre, precio, detalle, categoria_id) 
+VALUES ('Leche Vita', 0.90, 'Funda 1 Litro', 3);
+
+<?php
+require_once "conexion.php";
+
+$cat = $conn->query("SELECT * FROM categorias");
+
+// 1. BLOQUE DE INSERCIÓN
+if (isset($_POST['bt_insertar'])) {
+    $nombre = $_POST['nombre'];
+    $precio = $_POST['precio'];
+    $detalle = $_POST['detalle']; // Corregido: detalle
+    $categoria_id = $_POST['categoria_id']; // Corregido: categoria_id
+
+    // Faltaba el nombre de la tabla "productos"
+    $sql_insert = "INSERT INTO productos (nombre, precio, detalle, categoria_id) 
+                   VALUES ('$nombre', '$precio', '$detalle', '$categoria_id')";
+                   
+    $conn->query($sql_insert); // Corregido el comando de ejecución
+}
+
+// 2. BLOQUE DE BÚSQUEDA
+$resultado_busqueda = null; // Iniciamos la variable vacía por si aún no han buscado nada
+if (isset($_POST['bt_buscar'])) {
+    $buscar = $_POST['buscar'];
+
+    $sql_buscar = "SELECT p.*, c.nombre as nombre_cat 
+                   FROM productos p, categorias c 
+                   WHERE p.categoria_id = c.id 
+                   AND p.nombre = '$buscar'";
+
+    $resultado_busqueda = $conn->query($sql_buscar); // Corregido
+}
+?>
+
+<html>
+<body>
+    <h2>INGRESAR PRODUCTOS</h2>
+    <form method='POST'>
+        Nombre: <input type='text' name='nombre'><br>
+        Precio: <input type='number' name='precio' step='0.01'><br>
+        Detalle: <input type='text' name='detalle'><br>
+
+        <select name='categoria_id'>
+            <?php
+            while ($fila = $cat->fetch_assoc()) {
+                echo "<option value='" . $fila['id'] . "'>" . $fila['nombre'] . "</option>";
+            }
+            ?>
+        </select><br><br>
+
+        <button type='submit' name='bt_insertar'>Guardar</button>
+    </form>
+
+    <hr>
+
+    <h2>BUSCAR PRODUCTOS</h2>
+    <form method='POST'>
+        Buscar: <input type='text' name='buscar'>
+        <button type='submit' name='bt_buscar'>BUSCAR</button>
+    </form>
+
+    <table border="1">
+        <tr>
+            <th>NOMBRE</th>
+            <th>PRECIO</th>
+            <th>DETALLE</th>
+        </tr>
+        <?php
+        if ($resultado_busqueda != null) {
+            
+            // Faltaban los () en fetch_assoc
+            while ($producto = $resultado_busqueda->fetch_assoc()) {
+                echo "<tr>";
+                echo "<td>" . $producto['nombre'] . "</td>";
+                echo "<td>" . $producto['precio'] . "</td>";
+                echo "<td>" . $producto['detalle'] . "</td>";
+                echo "</tr>";
+            }
+        }
+        ?>
+    </table>
+</body>
+</html>
+----------------------------------------
+
+para login con js,html
+
+
+ usuario.js
+
+class Usuario {
+    
+    constructor(nombre_ingresado, pass_ingresada) {
+        this.nombre = nombre_ingresado;
+        this.pass = pass_ingresada;
+    }
+
+    verificar() {
+        if (this.nombre === 'admin' && this.pass === '123') {
+            
+            window.location.href = "verdadero.html";
+            
+        } else {
+            
+            alert("que haces aqui pendejin");
+            
+        }
+    }
+}
+
+
+function iniciarLogin() {
+    let userEscrito = document.getElementById("cajaNombre").value;
+    let claveEscrita = document.getElementById("cajaPass").value;
+
+    let miUsuario = new Usuario(userEscrito, claveEscrita);
+
+    miUsuario.verificar();
+}
+
+--------------------
+ index.html 
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login JS</title>
+</head>
+<body>
+
+    <h2>Login del Sistema</h2>
+    
+    Nombre: <input type='text' id='cajaNombre'><br><br>
+    Contrasena: <input type='password' id='cajaPass'><br><br>
+
+    <button onclick="iniciarLogin()">Ingresar</button>
+
+    <script src="usuario.js"></script>
+
+</body>
+</html>
+
+-----------
+ verdadero.html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Acceso Correcto</title>
+</head>
+<body style="background-color: green; color: white; text-align: center;">
+
+    <br><br><br>
+    <h2>BIENVENIDO SEAS ADMIN</h2>
+
+</body>
+</html>
+
+--------------------------------------------
+notas con todas las tecnologias 
+
+CREATE TABLE usuarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario VARCHAR(50),
+    clave VARCHAR(50),
+    rol VARCHAR(20)
+);
+
+INSERT INTO usuarios (usuario, clave, rol) VALUES ('admin', '123', 'administrador');
+INSERT INTO usuarios (usuario, clave, rol) VALUES ('estudiante', '3456', 'estudiante');
+
+------------------------------
+index.html 
+<!DOCTYPE html>
+<html>
+<body>
+    <h2>Acceso al Sistema Universitario</h2>
+    <form id="formLogin" action="validar.php" method="POST">
+        Usuario: <input type="text" id="user" name="usuario"><br>
+        Clave: <input type="password" id="pass" name="clave"><br>
+        <button type="submit">Ingresar</button>
+    </form>
+    <p id="error" style="color:red;"></p>
+
+    <script>
+        document.getElementById("formLogin").addEventListener("submit", function(evento) {
+            let clave = document.getElementById("pass").value;
+            if (clave === "") {
+                evento.preventDefault(); // Cancelamos el envío a PHP
+                document.getElementById("error").innerText = "La clave no puede estar vacía, bro.";
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+<?php
+// Archivo: validar.php
+session_start(); 
+include 'conexion.php'; 
+
+$user = $_POST['usuario'];
+$pass = $_POST['clave'];
+
+$sql = "SELECT rol FROM usuarios WHERE usuario = '$user' AND clave = '$pass'";
+$resultado = $conn->query($sql);
+
+if ($resultado->num_rows > 0) {
+    $fila = $resultado->fetch_assoc();
+    $rol_encontrado = $fila['rol'];
+
+    $_SESSION['rol_actual'] = $rol_encontrado;
+
+    if ($rol_encontrado === 'administrador') {
+        header("Location: panel_admin.php");
+    } else {
+        header("Location: panel_estudiante.php");
+    }
+} else {
+    echo "<script>alert('Credenciales incorrectas'); window.location.assign('index.html');</script>";
+}
+?>
+
+
+
+<?php
+session_start();
+if ($_SESSION['rol_actual'] != 'estudiante') {
+    die("No tienes permiso para estar aquí.");
+}
+include 'conexion.php';
+$notas_sql = $conn->query("SELECT * FROM notas WHERE alumno_id = 2"); // Asumiendo que es su ID
+?>
+
+<h2>Mis Calificaciones</h2>
+
+<h3>Vista en Tabla</h3>
+<table border="1">
+    <tr><th>Nota 1</th><th>Nota 2</th><th>Nota 3</th><th>Promedio</th></tr>
+    <?php
+    while ($fila = $notas_sql->fetch_assoc()) {
+        $prom = round(($fila['nota1'] + $fila['nota2'] + $fila['nota3']) / 3);
+        echo "<tr><td>".$fila['nota1']."</td><td>".$fila['nota2']."</td><td>".$fila['nota3']."</td><td><b>$prom</b></td></tr>";
+    }
+    ?>
+</table>
+
+<h3>Vista en Lista</h3>
+<ul>
+    <?php
+    $notas_sql->data_seek(0); 
+    while ($fila = $notas_sql->fetch_assoc()) {
+        $prom = round(($fila['nota1'] + $fila['nota2'] + $fila['nota3']) / 3);
+        echo "<li>Parcial 1: " . $fila['nota1'] . "</li>";
+        echo "<li>Parcial 2: " . $fila['nota2'] . "</li>";
+        echo "<li>Parcial 3: " . $fila['nota3'] . "</li>";
+        echo "<li><b>Promedio Final: " . $prom . "</b></li>";
+    }
+    ?>
+</ul>
+
+
+
+<?php
+panel_admin.php
+session_start();
+if ($_SESSION['rol_actual'] != 'administrador') {
+    die("Solo personal autorizado.");
+}
+include 'conexion.php';
+?>
+
+<h2>Panel de Control - Profesor</h2>
+
+<form method="POST" action="insertar_nota.php">
+    <h3>Ingresar Nueva Nota</h3>
+    ID Alumno: <input type="number" name="id_alumno">
+    N1: <input type="number" name="n1">
+    N2: <input type="number" name="n2">
+    N3: <input type="number" name="n3">
+    <button type="submit">Guardar Nota</button>
+</form>
+
+<hr>
+
+<h3>Gestión de Notas Existentes</h3>
+<table border="1">
+    <tr><th>Alumno ID</th><th>N1</th><th>N2</th><th>N3</th><th>Acciones</th></tr>
+    <?php
+    $todas_notas = $conn->query("SELECT * FROM notas");
+    while ($fila = $todas_notas->fetch_assoc()) {
+        echo "<tr>";
+        echo "<td>".$fila['alumno_id']."</td>";
+        echo "<td>".$fila['nota1']."</td>";
+        echo "<td>".$fila['nota2']."</td>";
+        echo "<td>".$fila['nota3']."</td>";
+        echo "<td>
+                <a href='editar_nota.php?id=".$fila['id']."' style='color:blue;'>Editar</a> | 
+                <a href='eliminar_nota.php?id=".$fila['id']."' style='color:red;'>Eliminar</a>
+              </td>";
+        echo "</tr>";
+    }
+    ?>
+</table>
+/*------------------------------------------------------------------------------------------------
+
+usuario con php 
+
+<?php
+session_start();
+include 'conexion.php'; 
+
+$user = $_POST['usuario'];
+$pass = $_POST['clave'];
+
+// Preguntamos a la base de datos qué rol tiene este sujeto
+$sql = "SELECT rol FROM usuarios WHERE usuario = '$user' AND clave = '$pass'";
+$resultado = $conn->query($sql);
+
+if ($resultado->num_rows > 0) {
+    
+    // Sacamos los datos de la consulta
+    $fila = $resultado->fetch_assoc();
+    $rol = $fila['rol'];
+
+    // Guardamos que ya inició sesión
+    $_SESSION['logeado'] = true;
+
+    // LA DECISIÓN DE A QUÉ PÁGINA IR:
+    if ($rol === 'admin') {
+        // Si es admin, lo mandamos a la página verde
+        header("Location: pagina_verde.php");
+        exit(); // Siempre pon exit() después de un header para que PHP detenga la ejecución
+    } else {
+        // Si es cualquier otro, lo mandamos a la página roja
+        header("Location: pagina_roja.php");
+        exit();
+    }
+    
+} else {
+    echo "¡Clave incorrecta, mi bro!";
+}
+?>
+
+
+--------------pg verde
+
+<?php
+session_start();
+// Si intentan entrar sin logearse, los botamos
+if (!isset($_SESSION['logeado'])) {
+    die("¡Inicia sesión primero!");
+}
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Panel de Administrador</title>
+</head>
+<!-- Pintamos TODO el fondo de verde directamente en el body -->
+<body style="background-color: green; color: white; text-align: center; padding-top: 50px; font-family: Arial;">
+
+    <h1>¡BIENVENIDO SEAS ADMIN!</h1>
+    <p>Tienes acceso total al sistema.</p>
+    
+    <a href="cerrar_sesion.php" style="color: yellow;">Cerrar Sesión</a>
+
+</body>
+</html>
+
+
+
+p-----pag roj
+
+<?php
+session_start();
+if (!isset($_SESSION['logeado'])) {
+    die("¡Inicia sesión primero!");
+}
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Panel de Usuario</title>
+</head>
+<!-- Pintamos TODO el fondo de rojo directamente en el body -->
+<body style="background-color: red; color: white; text-align: center; padding-top: 50px; font-family: Arial;">
+
+    <h1>¡BIENVENIDO USUARIO!</h1>
+    <p>Tus permisos están limitados a solo lectura.</p>
+    
+    <a href="cerrar_sesion.php" style="color: yellow;">Cerrar Sesión</a>
+
+</body>
+</html>
+
+
+-----------ingreso de numeros
+<?php
+// 1. Iniciamos la mochila de la sesión
+session_start();
+
+// 2. Si la lista de números no existe todavía, la creamos vacía
+if (!isset($_SESSION['lista_numeros'])) {
+    $_SESSION['lista_numeros'] = []; // Un arreglo vacío
+}
+
+// 3. Si el usuario presionó el botón de "Guardar"
+if (isset($_POST['btn_guardar'])) {
+    $nuevo_numero = $_POST['numero_ingresado'];
+    
+    // Guardamos el nuevo número en la mochila de la sesión
+    $_SESSION['lista_numeros'][] = $nuevo_numero;
+}
+
+// 4. (Opcional) Un botón para reiniciar la tabla y vaciar la mochila
+if (isset($_POST['btn_limpiar'])) {
+    session_destroy(); // Destruimos la sesión
+    header("Location: index.php"); // Recargamos la página para que quede en blanco
+    exit();
+}
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pares e Impares</title>
+</head>
+<body style="font-family: Arial; text-align: center; margin-top: 50px;">
+
+    <h2>Clasificador de Números en Vivo</h2>
+
+    <!-- FORMULARIO PARA INGRESAR EL NÚMERO -->
+    <form method="POST" action="">
+        Ingrese un número: 
+        <input type="number" name="numero_ingresado" required>
+        <button type="submit" name="btn_guardar" style="background-color: blue; color: white;">Clasificar</button>
+        <button type="submit" name="btn_limpiar" style="background-color: red; color: white;">Limpiar Todo</button>
+    </form>
+
+    <br><hr><br>
+
+    <!-- TABLA DONDE SE DIBUJAN LOS RESULTADOS -->
+    <table border="1" width="40%" style="margin: 0 auto; text-align: center; border-collapse: collapse;">
+        <tr style="background-color: #333; color: white;">
+            <th>Pares (Izquierda)</th>
+            <th>Impares (Derecha)</th>
+        </tr>
+        
+        <?php
+        // 5. Recorremos todos los números que están en la mochila
+        foreach ($_SESSION['lista_numeros'] as $num) {
+            
+            echo "<tr>";
+            
+            // LA LÓGICA DE CLASIFICACIÓN
+            if ($num % 2 == 0) {
+                
+                // ES PAR: 
+                // Celda izquierda con el número y fondo verde
+                echo "<td style='background-color: lightgreen; font-weight: bold;'>" . $num . "</td>";
+                // Celda derecha vacía
+                echo "<td></td>";
+                
+            } else {
+                
+                // ES IMPAR:
+                // Celda izquierda vacía
+                echo "<td></td>";
+                // Celda derecha con el número y fondo rojo
+                echo "<td style='background-color: lightcoral; font-weight: bold;'>" . $num . "</td>";
+                
+            }
+            
+            echo "</tr>";
+        }
+        ?>
+    </table>
+
+</body>
+</html>
+
+
+----------numeros con bd
+CREATE TABLE numeros (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    valor INT NOT NULL
+);
+
+
+<?php
+// 1. Conectamos a la base de datos
+require_once "conexion.php";
+
+// 2. Si el usuario presionó el botón de guardar
+if (isset($_POST['btn_guardar'])) {
+    $nuevo_numero = $_POST['numero_ingresado'];
+    
+    // Guardamos el número permanentemente en la base de datos
+    $sql_insert = "INSERT INTO numeros (valor) VALUES ('$nuevo_numero')";
+    $conn->query($sql_insert);
+}
+
+// 3. (Opcional) Un botón para vaciar la tabla de la base de datos
+if (isset($_POST['btn_limpiar'])) {
+    // TRUNCATE borra todos los datos y reinicia los IDs a 1
+    $conn->query("TRUNCATE TABLE numeros"); 
+    header("Location: index.php");
+    exit();
+}
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pares e Impares con BD</title>
+</head>
+<body style="font-family: Arial; text-align: center; margin-top: 50px;">
+
+    <h2>Clasificador de Números desde BD</h2>
+
+    <!-- FORMULARIO PARA INGRESAR EL NÚMERO -->
+    <form method="POST" action="">
+        Ingrese un número: 
+        <input type="number" name="numero_ingresado" required>
+        <button type="submit" name="btn_guardar" style="background-color: blue; color: white;">Guardar en BD</button>
+        <button type="submit" name="btn_limpiar" style="background-color: red; color: white;">Borrar Todo</button>
+    </form>
+
+    <br><hr><br>
+
+    <!-- TABLA DONDE SE DIBUJAN LOS RESULTADOS -->
+    <table border="1" width="40%" style="margin: 0 auto; text-align: center; border-collapse: collapse;">
+        <tr style="background-color: #333; color: white;">
+            <th>Pares (Izquierda)</th>
+            <th>Impares (Derecha)</th>
+        </tr>
+        
+        <?php
+        // 4. Traemos todos los números guardados en la base de datos
+        $sql_select = "SELECT valor FROM numeros";
+        $resultado = $conn->query($sql_select);
+
+        // Verificamos que existan datos antes de dibujar
+        if ($resultado && $resultado->num_rows > 0) {
+            
+            // 5. Recorremos caja por caja
+            while ($fila = $resultado->fetch_assoc()) {
+                
+                $num = $fila['valor'];
+                echo "<tr>";
+                
+                // LA MAGIA DE CLASIFICACIÓN (La misma que usamos antes)
+                if ($num % 2 == 0) {
+                    // ES PAR
+                    echo "<td style='background-color: lightgreen; font-weight: bold;'>" . $num . "</td>";
+                    echo "<td></td>";
+                } else {
+                    // ES IMPAR
+                    echo "<td></td>";
+                    echo "<td style='background-color: lightcoral; font-weight: bold;'>" . $num . "</td>";
+                }
+                
+                echo "</tr>";
+            }
+        } else {
+            echo "<tr><td colspan='2'>No hay números en la base de datos aún.</td></tr>";
+        }
+        ?>
+    </table>
+
+</body>
+</html>
+
+	
