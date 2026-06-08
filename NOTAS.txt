@@ -1,3 +1,262 @@
+----------------login
+CREATE DATABASE sistema_evaluacion;
+USE sistema_evaluacion;
+
+CREATE TABLE usuarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario VARCHAR(50) NOT NULL,
+    clave VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE ingresos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario_id INT NOT NULL,
+    fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+);
+
+INSERT INTO usuarios (usuario, clave) VALUES ('admin', '1234');
+
+
+
+
+
+<?php
+$conn = new mysqli("localhost", "root", "", "sistema_evaluacion");
+
+if ($conn->connect_error) {
+    die("Error de conexión: " . $conn->connect_error);
+}
+?>
+
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login del Sistema</title>
+    <style>
+        body { font-family: Arial; display: flex; justify-content: center; margin-top: 100px; }
+        .caja { border: 1px solid #ccc; padding: 20px; border-radius: 8px; text-align: center; }
+        input { margin: 10px 0; padding: 8px; width: 90%; }
+        button { background-color: #28a745; color: white; padding: 10px; border: none; width: 100%; cursor: pointer;}
+    </style>
+</head>
+<body>
+    <div class="caja">
+        <h2>Acceso al Sistema</h2>
+        <form action="validar.php" method="POST">
+            <input type="text" name="usuario" placeholder="Usuario" required>
+            <input type="password" name="clave" placeholder="Clave" required>
+            <button type="submit">Ingresar</button>
+        </form>
+    </div>
+</body>
+</html>
+
+
+
+<?php
+session_start();
+include 'conexion.php';
+
+$user = $_POST['usuario'];
+$pass = $_POST['clave'];
+
+$sql = "SELECT id, usuario FROM usuarios WHERE usuario = '$user' AND clave = '$pass'";
+$resultado = $conn->query($sql);
+
+if ($resultado->num_rows > 0) {
+    $fila = $resultado->fetch_assoc();
+    $id_usuario = $fila['id'];
+    $nombre_usuario = $fila['usuario'];
+
+    $sql_registro = "INSERT INTO ingresos (usuario_id) VALUES ('$id_usuario')";
+    $conn->query($sql_registro);
+
+    $_SESSION['usuario_activo'] = $nombre_usuario;
+    $_SESSION['id_activo'] = $id_usuario;
+
+    header("Location: panel.php");
+    exit();
+} else {
+    echo "<script>
+            alert('Usuario o clave incorrecta');
+            window.location.replace('index.html');
+          </script>";
+}
+?>
+
+
+
+
+<?php
+session_start();
+include 'conexion.php';
+
+if (!isset($_SESSION['usuario_activo'])) {
+    header("Location: index.html");
+    exit();
+}
+
+$id_actual = $_SESSION['id_activo'];
+$nombre_actual = $_SESSION['usuario_activo'];
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Panel Principal</title>
+</head>
+<body style="font-family: Arial; text-align: center; margin-top: 50px;">
+
+    <h2>Bienvenido al sistema Usuario <?php echo $nombre_actual; ?></h2>
+    
+    <hr width="50%">
+    <h3>Historial de tus ingresos:</h3>
+
+    <table border="1" style="margin: 0 auto; width: 40%; border-collapse: collapse;">
+        <tr style="background-color: #333; color: white;">
+            <th>ID Ingreso</th>
+            <th>Fecha y Hora del Sistema</th>
+        </tr>
+        
+        <?php
+        $sql_historial = "SELECT id, fecha_hora FROM ingresos WHERE usuario_id = '$id_actual' ORDER BY fecha_hora DESC";
+        $resultado_historial = $conn->query($sql_historial);
+
+        while ($fila = $resultado_historial->fetch_assoc()) {
+            echo "<tr>";
+            echo "<td>" . $fila['id'] . "</td>";
+            echo "<td>" . $fila['fecha_hora'] . "</td>";
+            echo "</tr>";
+        }
+        ?>
+    </table>
+
+    <br><br>
+    
+    <a href="cerrar_sesion.php">
+        <button style="background-color: red; color: white; padding: 10px;">Cerrar Sesión e Ingresar Otro Usuario</button>
+    </a>
+
+</body>
+</html>
+
+
+
+<?php
+session_start();
+session_destroy();
+header("Location: index.html");
+exit();
+?>
+
+---------------------
+
+CREATE DATABASE  apell;
+USE semblantes;
+
+CREATE TABLE categorias (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE productos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    precio DECIMAL(10,2) NOT NULL,
+    categoria_id INT,
+    FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE CASCADE
+);
+
+INSERT INTO categorias (nombre) VALUES ('Snacks'), ('Bebidas'), ('Lacteos');
+
+INSERT INTO productos (nombre, precio, categoria_id) VALUES ('Doritos', 0.50, 1);
+INSERT INTO productos (nombre, precio, categoria_id) VALUES ('Ruffles', 0.60, 1);
+INSERT INTO productos (nombre, precio, categoria_id) VALUES ('Coca Cola', 1.00, 2);
+INSERT INTO productos (nombre, precio, categoria_id) VALUES ('Sprite', 1.00, 2);
+INSERT INTO productos (nombre, precio, categoria_id) VALUES ('Leche Vita', 0.90, 3);
+
+
+<?php
+$conn = new mysqli("localhost", "root", "", "apell");
+
+if ($conn->connect_error) {
+    die("Error de conexión: " . $conn->connect_error);
+}
+?>
+
+
+
+
+<?php 
+include 'conexion.php'; 
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Consulta de Productos</title>
+</head>
+<body style="font-family: Arial; padding: 20px;">
+
+    <h2>Buscador de Productos por Categoría</h2>
+    
+    <form method="POST" action="">
+        Nombre de la Categoría: 
+        <input type="text" name="nombre_categoria" required>
+        <button type="submit" name="btn_buscar">Buscar</button>
+    </form>
+
+    <hr>
+
+    <?php
+    if (isset($_POST['btn_buscar'])) {
+        
+        $cat_buscada = $_POST['nombre_categoria'];
+
+        $sql = "SELECT p.nombre, p.precio 
+                FROM productos p 
+                INNER JOIN categorias c ON p.categoria_id = c.id 
+                WHERE c.nombre = '$cat_buscada'";
+        
+        $resultado = $conn->query($sql);
+
+        if ($resultado->num_rows > 0) {
+            
+            // Si hay productos, dibujamos la tabla
+            echo "<h3>Productos de la categoría: " . $cat_buscada . "</h3>";
+            echo "<table border='1' cellpadding='10' style='border-collapse: collapse; text-align: center;'>";
+            echo "<tr style='background-color: #333; color: white;'>
+                    <th>Producto</th>
+                    <th>Precio</th>
+                  </tr>";
+            
+            while ($fila = $resultado->fetch_assoc()) {
+                echo "<tr>";
+                echo "<td>" . $fila['nombre'] . "</td>";
+                echo "<td>$" . $fila['precio'] . "</td>";
+                echo "</tr>";
+            }
+            
+            echo "</table>";
+            
+        } else {
+            echo "<h3 style='color: red;'>No existen productos para la categoría seleccionada.</h3>";
+        }
+    }
+    ?>
+
+</body>
+</html>
+----------------------------------------------------
+
+
+
+
+
+-----------------------
 NOTAS 
 BD RELACIONAL fk
 
